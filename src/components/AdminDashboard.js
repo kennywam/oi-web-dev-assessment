@@ -1,77 +1,63 @@
 import React, { useState, useEffect } from "react";
-import PostForm from "./PostForm";
-import PostTable from "./PostTable";
+import { Link } from "react-router-dom";
+import axios from "axios";
 
 const AdminDashboard = () => {
   const [posts, setPosts] = useState([]);
-  const [postToEdit, setPostToEdit] = useState(null);
 
-  // Fetch posts from backend API on component mount
   useEffect(() => {
-    fetch("/api/posts")
-      .then((response) => response.json())
-      .then((data) => setPosts(data));
+    // Fetch blog posts from API
+    const fetchPosts = async () => {
+      try {
+        const response = await axios.get("/api/posts");
+        setPosts(response.data);
+      } catch (error) {
+        console.error("Failed to fetch posts:", error);
+      }
+    };
+
+    fetchPosts();
   }, []);
 
-  // Function to create a new post
-  const createPost = (post) => {
-    fetch("/api/posts", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(post),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        setPosts([...posts, data]);
-      })
-      .catch((error) => console.error("Error creating post:", error));
-  };
-
-  // Function to update an existing post
-  const updatePost = (post) => {
-    fetch(`/api/posts/${post.id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(post),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        setPosts(posts.map((p) => (p.id === data.id ? data : p)));
-        setPostToEdit(null);
-      })
-      .catch((error) => console.error("Error updating post:", error));
-  };
-
-  // Function to delete a post
-  const deletePost = (post) => {
-    fetch(`/api/posts/${post.id}`, {
-      method: "DELETE",
-    })
-      .then(() => {
-        setPosts(posts.filter((p) => p.id !== post.id));
-      })
-      .catch((error) => console.error("Error deleting post:", error));
-  };
-
-  // Function to edit a post
-  const editPost = (post) => {
-    setPostToEdit(post);
+  const handleDeletePost = async (postId) => {
+    try {
+      await axios.delete(`/api/posts/${postId}`);
+      // Update state to remove deleted post
+      setPosts(posts.filter(post => post._id !== postId));
+    } catch (error) {
+      console.error(`Failed to delete post with ID ${postId}:`, error);
+    }
   };
 
   return (
     <div>
       <h1>Admin Dashboard</h1>
-      <h2>Posts</h2>
-      <PostForm
-        createPost={createPost}
-        updatePost={updatePost}
-        postToEdit={postToEdit}
-      />
-      <PostTable posts={posts} editPost={editPost} deletePost={deletePost} />
+      <Link to="/admin/posts/new">Create New Post</Link>
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Tags</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {posts.map(post => (
+            <tr key={post._id}>
+              <td>{post.title}</td>
+              <td>{post.category}</td>
+              <td>{post.tags.join(", ")}</td>
+              <td>
+                <Link to={`/admin/posts/${post._id}`}>Edit</Link>
+                <button onClick={() => handleDeletePost(post._id)}>
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };

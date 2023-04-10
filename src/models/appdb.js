@@ -149,6 +149,11 @@ app.post("/login", (req, res, next) => {
     return res.json({ token });
   })(req, res, next);
 });
+module.exports = {
+  app,
+  generateToken,
+  verifyToken,
+};
 
 // Start the server
 const PORT = process.env.PORT || 3000;

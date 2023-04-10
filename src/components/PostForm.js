@@ -1,77 +1,98 @@
 import React, { useState, useEffect } from "react";
+import { useParams, useHistory } from "react-router-dom";
 import axios from "axios";
 
 const PostForm = () => {
-  const [categories, setCategories] = useState([]);
+  const { postId } = useParams();
+  const history = useHistory();
+
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [category, setCategory] = useState("");
   const [tags, setTags] = useState([]);
+
   useEffect(() => {
-    // Fetch categories and tags from backend API
-    const fetchCategoriesAndTags = async () => {
-      try {
-        const categoriesResponse = await axios.get("/api/categories");
-        const tagsResponse = await axios.get("/api/tags");
-        setCategories(categoriesResponse.data);
-        setTags(tagsResponse.data);
-      } catch (error) {
-        console.error("Error fetching categories and tags:", error);
+    // Fetch post data for editing
+    const fetchPost = async () => {
+      if (postId) {
+        try {
+          const response = await axios.get(`/api/posts/${postId}`);
+          const { title, content, category, tags } = response.data;
+          setTitle(title);
+          setContent(content);
+          setCategory(category);
+          setTags(tags);
+        } catch (error) {
+          console.error(`Failed to fetch post with ID ${postId}:`, error);
+        }
       }
     };
-    fetchCategoriesAndTags();
-  }, []);
 
-  const handlePostFormSubmit = (formData) => {
-    // Submit post form data to backend API
-    // Include selected category and tag IDs in the formData
-    // for creating or updating the post
-    const { categoryId, tagIds, ...postFormData } = formData;
-    const selectedCategory = categories.find(
-      (category) => category.id === categoryId
-    );
-    const selectedTags = tags.filter((tag) => tagIds.includes(tag.id));
+    fetchPost();
+  }, [postId]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
     const postData = {
-      ...postFormData,
-      category: selectedCategory,
-      tags: selectedTags,
+      title,
+      content,
+      category,
+      tags,
     };
-    // Make API call to create or update post with formData
-    // including selected category and tag IDs
-    axios
-      .post("/api/posts", postData)
-      .then((response) => {
-        // Handle successful post creation or update
-        console.log("Post created or updated successfully:", response.data);
-      })
-      .catch((error) => {
-        // Handle post creation or update error
-        console.error("Error creating or updating post:", error);
-      });
+
+    try {
+      if (postId) {
+        // Update existing post
+        await axios.put(`/api/posts/${postId}`, postData);
+      } else {
+        // Create new post
+        await axios.post("/api/posts", postData);
+      }
+
+      // Redirect to admin dashboard
+      history.push("/admin");
+    } catch (error) {
+      console.error("Failed to submit post:", error);
+    }
   };
 
   return (
     <div>
-      {/* Render post form with category and tag dropdown */}
-      <form onSubmit={handlePostFormSubmit}>
-        {/ Render post form inputs /}
-        {/ ... /}
-        {/ Render category dropdown /}
-        <label htmlFor="categoryId">Category:</label>
-        <select id="categoryId" name="categoryId">
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-        {/ Render tag multi-select dropdown */}
-        <label htmlFor="tagIds">Tags:</label>
-        <select id="tagIds" name="tagIds" multiple>
-          {tags.map((tag) => (
-            <option key={tag.id} value={tag.id}>
-              {tag.name}
-            </option>
-          ))}
-        </select>
-        <button type="submit">Submit</button>
+      <h1>{postId ? "Edit Post" : "Create Post"}</h1>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Title:
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </label>
+        <label>
+          Content:
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+          ></textarea>
+        </label>
+        <label>
+          Category:
+          <input
+            type="text"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          />
+        </label>
+        <label>
+          Tags (separated by commas):
+          <input
+            type="text"
+            value={tags.join(", ")}
+            onChange={(e) => setTags(e.target.value.split(", "))}
+          />
+        </label>
+        <button type="submit">{postId ? "Save" : "Create"}</button>
       </form>
     </div>
   );

@@ -3,7 +3,7 @@ import axios from "axios";
 
 import "./App.css";
 import adminRoutes from "./routes/admin"; // Import the adminRoutes module
-import app from "./server"; // Import 'app' from server.js
+import app from "./Server/server.js";
 
 function App() {
   const [data, setData] = useState([]);
